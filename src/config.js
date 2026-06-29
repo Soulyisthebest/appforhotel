@@ -1,40 +1,25 @@
 'use strict';
-require('dotenv').config();
 
 const { createClient } = require('@supabase/supabase-js');
 
-let _supabase = null;
-let _supabaseAnon = null;
+const SUPABASE_URL         = process.env.SUPABASE_URL         || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const SUPABASE_ANON_KEY    = process.env.SUPABASE_ANON_KEY    || SUPABASE_SERVICE_KEY;
 
-function getSupabase() {
-  if (_supabase) return _supabase;
+console.log('[Config] SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'MISSING');
+console.log('[Config] SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING');
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
+let supabase = null;
+let supabaseAnon = null;
 
-  if (!url || !key) {
-    console.error('❌ SUPABASE_URL or SUPABASE_SERVICE_KEY missing in environment variables');
-    console.error('   Set them in Railway → Variables');
-    throw new Error('Supabase configuration missing. Check environment variables.');
-  }
-
-  _supabase = createClient(url, key, {
+if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
-  return _supabase;
+  supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('[Config] Supabase clients created successfully');
+} else {
+  console.error('[Config] Supabase NOT configured - check Railway Variables');
 }
 
-function getSupabaseAnon() {
-  if (_supabaseAnon) return _supabaseAnon;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) throw new Error('Supabase anon configuration missing');
-  _supabaseAnon = createClient(url, key);
-  return _supabaseAnon;
-}
-
-// Export as getters so clients are created lazily (after env vars are loaded)
-module.exports = {
-  get supabase() { return getSupabase(); },
-  get supabaseAnon() { return getSupabaseAnon(); }
-};
+module.exports = { supabase, supabaseAnon };
